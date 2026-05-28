@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estoque</title>
+  <link rel="stylesheet" href="estoque.css">
+</head>
+
+<body>
+
+  <h1>Estoque</h1>
+
+  <div id="mensagem"></div>
+
+  <section>
+    <h2>Gôndola</h2>
+
+    <input type="text" id="nomeGondola" placeholder="Ex: Gôndola A">
+
+    <button onclick="cadastrarGondola()">Cadastrar</button>
+  </section>
+
+  <section>
+    <h2>Cadastrar Material</h2>
+
+    <input type="text" id="material" placeholder="Material">
+    <input type="text" id="cor" placeholder="Cor">
+    <input type="text" id="camisa" placeholder="Camisa">
+    <input type="text" id="renda" placeholder="Renda">
+    <input type="text" id="cor_renda" placeholder="Cor da renda">
+
+    <button onclick="cadastrarMaterial()">Cadastrar</button>
+  </section>
+
+  <section>
+    <h2>Entrada / Saída</h2>
+
+    <div class="movimentacao-grid">
+
+      <div class="campo-busca">
+        <input
+          type="text"
+          id="buscaMaterial"
+          placeholder="Buscar material..."
+          onkeyup="buscarMaterialMovimentacao()"
+        >
+
+        <div id="listaMateriais"></div>
+
+        <input type="hidden" id="material_id">
+      </div>
+
+      <select id="gondola_id"></select>
+
+      <select id="tipo" onchange="atualizarGondolasMovimentacao()">
+        <option value="ENTRADA">Entrada</option>
+        <option value="SAIDA">Saída</option>
+      </select>
+
+      <input type="number" id="quantidade" placeholder="Quantidade">
+
+      <button onclick="movimentarEstoque()">Salvar</button>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>Relatório de Estoque</h2>
+
+    <input
+      type="text"
+      id="filtroProduto"
+      placeholder="Buscar por produto"
+      onkeyup="filtrarTabela()"
+    >
+
+    <select id="filtroGondola" onchange="filtrarTabela()">
+      <option value="">Todas as gôndolas</option>
+    </select>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Gôndolas / Estoque</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+
+      <tbody id="tabelaEstoque"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Histórico de Movimentações</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Item</th>
+          <th>Gôndola</th>
+          <th>Quantidade</th>
+          <th>Data</th>
+        </tr>
+      </thead>
+
+      <tbody id="tabelaMovimentacoes"></tbody>
+    </table>
+  </section>
+
+  <script src="estoque.js"></script>
+
+</body>
+</html>
