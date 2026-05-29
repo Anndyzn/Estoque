@@ -44,40 +44,6 @@
   </section>
 
   <section>
-    <h2>Transferência entre Gôndolas</h2>
-
-    <div class="movimentacao-grid">
-      <div class="campo-busca">
-        <input
-          type="text"
-          id="buscaTransferencia"
-          placeholder="Buscar material para transferir..."
-          onkeyup="buscarMaterialTransferencia()"
-        >
-
-        <div id="listaTransferencia"></div>
-
-        <input type="hidden" id="transfer_material_id">
-      </div>
-
-      <select id="gondola_origem"></select>
-
-      <select id="gondola_destino"></select>
-
-      <input
-        type="number"
-        id="quantidade_transferencia"
-        placeholder="Quantidade"
-      >
-
-      <button onclick="transferirEstoque()">
-        Transferir
-      </button>
-    </div>
-  </section>
-
-
-  <section>
     <h2>Relatório de Estoque</h2>
 
     <div class="filtros">
@@ -93,36 +59,103 @@
       </select>
     </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Item</th>
-          <th>Total</th>
-        </tr>
-      </thead>
 
-      <tbody id="tabelaEstoque"></tbody>
-    </table>
+    <div class="tabela-box">
+
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+
+        <tbody id="tabelaEstoque"></tbody>
+
+      </table>
+
+    </div>
+
   </section>
+
 
   <section>
     <h2>Últimas Movimentações</h2>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Tipo</th>
-          <th>Item</th>
-          <th>Gôndola</th>
-          <th>Quantidade</th>
-          <th>Data</th>
-          <th>Ação</th>
-        </tr>
-      </thead>
 
-      <tbody id="tabelaMovimentacoes"></tbody>
-    </table>
+    <div class="tabela-box">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Item</th>
+            <th>Gôndola</th>
+            <th>Quantidade</th>
+            <th>Data</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+
+
+        <tbody id="tabelaMovimentacoes"></tbody>
+
+
+      </table>
+
+    </div>
+
   </section>
+
+  <details class="cadastros-box">
+
+    <summary>Transferência entre Gôndolas</summary>
+
+
+    <div class="movimentacao-grid">
+
+      <div class="campo-busca">
+
+        <input
+          type="text"
+          id="buscaTransferencia"
+          placeholder="Buscar material para transferir..."
+          onkeyup="buscarMaterialTransferencia()"
+        >
+
+        <div id="listaTransferencia"></div>
+
+        <input type="hidden" id="transfer_material_id">
+
+      </div>
+
+
+      <select id="gondola_origem">
+        <option value="">Origem</option>
+      </select>
+
+
+      <select id="gondola_destino">
+        <option value="">Destino</option>
+      </select>
+
+
+      <input
+        type="number"
+        id="quantidade_transferencia"
+        placeholder="Quantidade"
+      >
+
+
+      <button onclick="transferirEstoque()">
+        Transferir
+      </button>
+
+
+    </div>
+
+  </details>
 
   <details class="cadastros-box">
     <summary>Cadastros</summary>

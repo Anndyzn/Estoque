@@ -448,3 +448,22 @@ details summary::marker {
   max-height: 300px;
   overflow-y: auto;
 }
+
+.tabela-box {
+  max-height: 380px;
+  overflow-y: auto;
+  overflow-x: auto;
+  border-radius: 16px;
+  border: 1px solid #dbeafe;
+  background: white;
+}
+
+.tabela-box table {
+  margin-top: 0;
+}
+
+.tabela-box thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
