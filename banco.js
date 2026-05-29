@@ -26,9 +26,9 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       material_id INTEGER NOT NULL,
       gondola_id INTEGER NOT NULL,
-      quantidade INTEGER NOT NULL DEFAULT 0,
-      FOREIGN KEY (material_id) REFERENCES materiais(id),
-      FOREIGN KEY (gondola_id) REFERENCES gondolas(id)
+      quantidade INTEGER DEFAULT 0,
+
+      UNIQUE(material_id, gondola_id)
     )
   `);
 

@@ -188,11 +188,10 @@ async function carregarEstoque() {
   const estoque = await resposta.json();
 
   const tabela = document.getElementById("tabelaEstoque");
-
   tabela.innerHTML = "";
 
   estoque.forEach((item) => {
-    let descricao = item.material;
+    let descricao = item.material || "";
 
     if (item.cor) descricao += ` | ${item.cor}`;
     if (item.camisa) descricao += ` | Camisa ${item.camisa}`;
@@ -201,8 +200,14 @@ async function carregarEstoque() {
 
     tabela.innerHTML += `
       <tr>
-        <td>${descricao}</td>
-        <td>${item.gondolas || "-"}</td>
+        <td>
+          <details>
+            <summary>${descricao}</summary>
+            <div class="gondolas-detalhe">
+              ${item.gondolas || "Sem gôndola"}
+            </div>
+          </details>
+        </td>
         <td>${item.quantidade || 0}</td>
       </tr>
     `;
@@ -232,10 +237,316 @@ async function carregarMovimentacoes() {
         <td>${item.gondola}</td>
         <td>${item.quantidade}</td>
         <td>${item.data_movimentacao}</td>
+        <td>
+          <button class="btn-excluir" onclick="desfazerMovimentacao(${item.id})">
+            Desfazer
+          </button>
+        </td>
       </tr>
     `;
   });
 }
+
+async function desfazerMovimentacao(id) {
+  const confirmar = confirm(
+    "Tem certeza que deseja desfazer esta movimentação?"
+  );
+
+  if (!confirmar) {
+    return;
+  }
+
+  const resposta = await fetch(`${API}/movimentacoes/${id}`, {
+    method: "DELETE"
+  });
+
+  const dados = await resposta.json();
+
+  if (!resposta.ok) {
+    mostrarMensagem(dados.erro || "Erro ao desfazer movimentação.", "erro");
+    return;
+  }
+
+  await carregarEstoque();
+  await carregarMovimentacoes();
+
+  mostrarMensagem(dados.mensagem || "Movimentação desfeita com sucesso.");
+}
+
+function buscarMaterialTransferencia() {
+  const busca = document
+    .getElementById("buscaTransferencia")
+    .value
+    .trim()
+    .toLowerCase();
+
+  const lista = document.getElementById("listaTransferencia");
+
+  lista.innerHTML = "";
+
+  if (!busca) {
+    return;
+  }
+
+  const filtrados = materiaisCache.filter((item) => {
+    const texto = [
+      item.material,
+      item.cor,
+      item.camisa,
+      item.renda,
+      item.cor_renda
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return texto.includes(busca);
+  });
+
+  filtrados.forEach((item) => {
+    let descricao = item.material || "";
+
+    if (item.cor) descricao += ` | ${item.cor}`;
+    if (item.camisa) descricao += ` | Camisa ${item.camisa}`;
+    if (item.renda) descricao += ` | Renda ${item.renda}`;
+    if (item.cor_renda) descricao += ` | ${item.cor_renda}`;
+
+    lista.innerHTML += `
+      <div 
+        class="item-busca"
+        onclick="selecionarMaterialTransferencia(${item.id}, '${descricao.replace(/'/g, "\\'")}')"
+      >
+        ${descricao}
+      </div>
+    `;
+  });
+}
+
+async function selecionarMaterialTransferencia(id, descricao) {
+  document.getElementById("transfer_material_id").value = id;
+  document.getElementById("buscaTransferencia").value = descricao;
+  document.getElementById("listaTransferencia").innerHTML = "";
+
+  await carregarGondolasOrigemTransferencia(id);
+  await carregarGondolasDestinoTransferencia();
+}
+
+async function carregarGondolasOrigemTransferencia(materialId) {
+  const resposta = await fetch(`${API}/estoque/material/${materialId}/gondolas`);
+  const gondolas = await resposta.json();
+
+  const select = document.getElementById("gondola_origem");
+
+  select.innerHTML = `<option value="">Origem</option>`;
+
+  gondolas.forEach((item) => {
+    select.innerHTML += `
+      <option value="${item.gondola_id}">
+        ${item.gondola} | Estoque: ${item.quantidade}
+      </option>
+    `;
+  });
+}
+
+async function carregarGondolasDestinoTransferencia() {
+  const resposta = await fetch(`${API}/gondolas`);
+  const gondolas = await resposta.json();
+
+  const select = document.getElementById("gondola_destino");
+
+  select.innerHTML = `<option value="">Destino</option>`;
+
+  gondolas.forEach((item) => {
+    select.innerHTML += `
+      <option value="${item.id}">
+        ${item.nome}
+      </option>
+    `;
+  });
+}
+
+async function transferirEstoque() {
+  const material_id = document.getElementById("transfer_material_id").value;
+  const gondola_origem_id = document.getElementById("gondola_origem").value;
+  const gondola_destino_id = document.getElementById("gondola_destino").value;
+  const quantidade = Number(document.getElementById("quantidade_transferencia").value);
+
+  if (!material_id || !gondola_origem_id || !gondola_destino_id) {
+    mostrarMensagem("Selecione material, origem e destino.", "erro");
+    return;
+  }
+
+  if (!quantidade || quantidade <= 0) {
+    mostrarMensagem("Informe uma quantidade válida.", "erro");
+    return;
+  }
+
+  const resposta = await fetch(`${API}/transferir`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      material_id,
+      gondola_origem_id,
+      gondola_destino_id,
+      quantidade
+    })
+  });
+
+  const dados = await resposta.json();
+
+  if (!resposta.ok) {
+    mostrarMensagem(dados.erro || "Erro ao transferir estoque.", "erro");
+    return;
+  }
+
+  document.getElementById("quantidade_transferencia").value = "";
+
+  await carregarEstoque();
+  await carregarMovimentacoes();
+  await carregarGondolasOrigemTransferencia(material_id);
+
+  mostrarMensagem(dados.mensagem);
+}
+
+function buscarMaterialTransferencia() {
+  const busca = document
+    .getElementById("buscaTransferencia")
+    .value
+    .trim()
+    .toLowerCase();
+
+  const lista = document.getElementById("listaTransferencia");
+
+  lista.innerHTML = "";
+
+  if (!busca) {
+    return;
+  }
+
+  const filtrados = materiaisCache.filter((item) => {
+    const texto = [
+      item.material,
+      item.cor,
+      item.camisa,
+      item.renda,
+      item.cor_renda
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return texto.includes(busca);
+  });
+
+  filtrados.forEach((item) => {
+    let descricao = item.material || "";
+
+    if (item.cor) descricao += ` | ${item.cor}`;
+    if (item.camisa) descricao += ` | Camisa ${item.camisa}`;
+    if (item.renda) descricao += ` | Renda ${item.renda}`;
+    if (item.cor_renda) descricao += ` | ${item.cor_renda}`;
+
+    lista.innerHTML += `
+      <div 
+        class="item-busca"
+        onclick="selecionarMaterialTransferencia(${item.id}, '${descricao.replace(/'/g, "\\'")}')"
+      >
+        ${descricao}
+      </div>
+    `;
+  });
+}
+
+async function selecionarMaterialTransferencia(id, descricao) {
+  document.getElementById("transfer_material_id").value = id;
+  document.getElementById("buscaTransferencia").value = descricao;
+  document.getElementById("listaTransferencia").innerHTML = "";
+
+  await carregarGondolasOrigemTransferencia(id);
+  await carregarGondolasDestinoTransferencia();
+}
+
+async function carregarGondolasOrigemTransferencia(materialId) {
+  const resposta = await fetch(`${API}/estoque/material/${materialId}/gondolas`);
+  const gondolas = await resposta.json();
+
+  const select = document.getElementById("gondola_origem");
+
+  select.innerHTML = `<option value="">Origem</option>`;
+
+  gondolas.forEach((item) => {
+    select.innerHTML += `
+      <option value="${item.gondola_id}">
+        ${item.gondola} | Estoque: ${item.quantidade}
+      </option>
+    `;
+  });
+}
+
+async function carregarGondolasDestinoTransferencia() {
+  const resposta = await fetch(`${API}/gondolas`);
+  const gondolas = await resposta.json();
+
+  const select = document.getElementById("gondola_destino");
+
+  select.innerHTML = `<option value="">Destino</option>`;
+
+  gondolas.forEach((item) => {
+    select.innerHTML += `
+      <option value="${item.id}">
+        ${item.nome}
+      </option>
+    `;
+  });
+}
+
+async function transferirEstoque() {
+  const material_id = document.getElementById("transfer_material_id").value;
+  const gondola_origem_id = document.getElementById("gondola_origem").value;
+  const gondola_destino_id = document.getElementById("gondola_destino").value;
+  const quantidade = Number(document.getElementById("quantidade_transferencia").value);
+
+  if (!material_id || !gondola_origem_id || !gondola_destino_id) {
+    mostrarMensagem("Selecione material, origem e destino.", "erro");
+    return;
+  }
+
+  if (!quantidade || quantidade <= 0) {
+    mostrarMensagem("Informe uma quantidade válida.", "erro");
+    return;
+  }
+
+  const resposta = await fetch(`${API}/transferir`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      material_id,
+      gondola_origem_id,
+      gondola_destino_id,
+      quantidade
+    })
+  });
+
+  const dados = await resposta.json();
+
+  if (!resposta.ok) {
+    mostrarMensagem(dados.erro || "Erro ao transferir estoque.", "erro");
+    return;
+  }
+
+  document.getElementById("quantidade_transferencia").value = "";
+
+  await carregarEstoque();
+  await carregarMovimentacoes();
+  await carregarGondolasOrigemTransferencia(material_id);
+
+  mostrarMensagem(dados.mensagem);
+}
+
 
 function filtrarTabela() {
   const filtroProduto = document
