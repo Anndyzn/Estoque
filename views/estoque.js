@@ -1,7 +1,7 @@
 let materiaisCache = [];
 let materialSelecionadoId = null;
 
-const API = "http://localhost:4000";
+const API = "";
 
 function mostrarMensagem(texto, tipo = "sucesso") {
   const mensagem = document.getElementById("mensagem");
@@ -547,7 +547,6 @@ async function transferirEstoque() {
   mostrarMensagem(dados.mensagem);
 }
 
-
 function filtrarTabela() {
   const filtroProduto = document
     .getElementById("filtroProduto")
@@ -563,11 +562,12 @@ function filtrarTabela() {
 
   linhas.forEach((linha) => {
     const textoLinha = linha.innerText.toLowerCase();
-    const gondolasLinha = linha.children[1].innerText.toLowerCase();
 
     const produtoConfere = textoLinha.includes(filtroProduto);
+
     const gondolaConfere =
-      !filtroGondola || gondolasLinha.includes(filtroGondola);
+      !filtroGondola ||
+      textoLinha.includes(`${filtroGondola.toLowerCase()}:`);
 
     linha.style.display =
       produtoConfere && gondolaConfere ? "" : "none";

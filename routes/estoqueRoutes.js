@@ -110,11 +110,12 @@ router.get("/estoque", (req, res) => {
       m.camisa,
       m.renda,
       m.cor_renda,
-      COALESCE(GROUP_CONCAT(g.nome || ': ' || e.quantidade, ' / '), 'Sem gôndola') AS gondolas,
-      COALESCE(SUM(e.quantidade), 0) AS quantidade
-    FROM materiais m
-    LEFT JOIN estoque e ON e.material_id = m.id
-    LEFT JOIN gondolas g ON e.gondola_id = g.id
+      GROUP_CONCAT(g.nome || ': ' || e.quantidade, ' / ') AS gondolas,
+      SUM(e.quantidade) AS quantidade
+    FROM estoque e
+    JOIN materiais m ON e.material_id = m.id
+    JOIN gondolas g ON e.gondola_id = g.id
+    WHERE e.quantidade > 0
     GROUP BY
       m.id,
       m.material,
@@ -134,7 +135,6 @@ router.get("/estoque", (req, res) => {
     }
   );
 });
-
 
 router.get("/movimentacoes", (req, res) => {
   db.all(

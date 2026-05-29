@@ -19,6 +19,6 @@ app.get("/", (req, res) => {
   res.sendFile(__dirname + "/views/estoque.html");
 });
 
-app.listen(4000, () => {
+app.listen(4000, "0.0.0.0", () => {
   console.log("Servidor rodando em http://localhost:4000");
 });
