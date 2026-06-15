@@ -39,7 +39,7 @@ db.serialize(() => {
       gondola_id INTEGER NOT NULL,
       tipo TEXT NOT NULL,
       quantidade INTEGER NOT NULL,
-      data_movimentacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+      data_movimentacao DATETIME DEFAULT (datetime('now', '-3 hours'))
       FOREIGN KEY (material_id) REFERENCES materiais(id),
       FOREIGN KEY (gondola_id) REFERENCES gondolas(id)
     )
