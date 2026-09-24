@@ -8,182 +8,251 @@
 </head>
 
 <body>
-
-  <h1>Estoque</h1>
+  <header class="topo">
+    <div>
+      <p class="subtitulo">Controle de peças por gôndola</p>
+      <h1>Estoque</h1>
+    </div>
+  </header>
 
   <div id="mensagem"></div>
 
-  <section>
-    <h2>Entrada / Saída</h2>
+  <nav class="abas" aria-label="Navegação principal">
+    <button class="aba ativa" type="button" data-destino="movimentacao" onclick="abrirAba('movimentacao')">Movimentar</button>
+    <button class="aba" type="button" data-destino="relatorio" onclick="abrirAba('relatorio')">Estoque</button>
+    <button class="aba" type="button" data-destino="historico" onclick="abrirAba('historico')">Histórico</button>
+    <button class="aba" type="button" data-destino="transferencia" onclick="abrirAba('transferencia')">Transferir</button>
+    <button class="aba" type="button" data-destino="cadastros" onclick="abrirAba('cadastros')">Cadastros</button>
+  </nav>
 
-    <div class="movimentacao-grid">
-      <div class="campo-busca">
+  <main>
+    <section id="movimentacao" class="painel aba-painel ativo">
+      <div class="secao-titulo">
+        <h2>Entrada / Saída</h2>
+      </div>
+
+      <div class="movimentacao-grid">
+        <div class="campo-busca campo-largo">
+          <label for="buscaMaterial">Material</label>
+          <input
+            type="text"
+            id="buscaMaterial"
+            placeholder="Buscar material, cor, camisa ou renda"
+            autocomplete="off"
+            oninput="buscarMaterialMovimentacao()"
+          >
+
+          <div id="listaMateriais" class="lista-busca"></div>
+          <input type="hidden" id="material_id">
+        </div>
+
+        <div>
+          <label for="gondola_id">Gôndola</label>
+          <select id="gondola_id"></select>
+        </div>
+
+        <div>
+          <label for="tipo">Tipo</label>
+          <select id="tipo" onchange="atualizarGondolasMovimentacao()">
+            <option value="ENTRADA">Entrada</option>
+            <option value="SAIDA">Saída</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="quantidade">Quantidade</label>
+          <input type="number" id="quantidade" placeholder="Qtd" min="1">
+        </div>
+
+        <button class="btn-principal" type="button" onclick="movimentarEstoque()">Salvar</button>
+      </div>
+
+      <div class="atalhos-quantidade" aria-label="Atalhos de quantidade">
+        <button type="button" onclick="definirQuantidade(100)">100</button>
+        <button type="button" onclick="definirQuantidade(200)">200</button>
+        <button type="button" onclick="definirQuantidade(300)">300</button>
+        <button type="button" onclick="somarQuantidade(10)">+10</button>
+        <button type="button" onclick="somarQuantidade(20)">+20</button>
+        <button type="button" onclick="limparMovimentacao()">Limpar</button>
+        <button id="btnRepetirMovimentacao" class="btn-secundario" type="button" onclick="repetirUltimaMovimentacao()" disabled>Repetir última</button>
+      </div>
+
+      <div id="detalheMaterial" class="detalhe-material">
+        Selecione um material para ver o saldo por gôndola.
+      </div>
+    </section>
+
+    <section id="relatorio" class="painel aba-painel">
+      <div class="secao-titulo">
+        <h2>Relatório de Estoque</h2>
+      </div>
+
+      <div class="filtros">
         <input
           type="text"
-          id="buscaMaterial"
-          placeholder="Buscar material..."
-          onkeyup="buscarMaterialMovimentacao()"
+          id="filtroProduto"
+          placeholder="Buscar por produto, cor ou detalhe"
+          oninput="filtrarTabela()"
         >
 
-        <div id="listaMateriais"></div>
-
-        <input type="hidden" id="material_id">
+        <select id="filtroGondola" onchange="filtrarTabela()">
+          <option value="">Todas as gôndolas</option>
+        </select>
       </div>
 
-      <select id="gondola_id"></select>
+      <div class="tabela-box">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaEstoque"></tbody>
+        </table>
+      </div>
+    </section>
 
-      <select id="tipo" onchange="atualizarGondolasMovimentacao()">
-        <option value="ENTRADA">Entrada</option>
-        <option value="SAIDA">Saída</option>
-      </select>
-
-      <input type="number" id="quantidade" placeholder="Quantidade">
-
-      <button onclick="movimentarEstoque()">Salvar</button>
-    </div>
-  </section>
-
-  <section>
-    <h2>Relatório de Estoque</h2>
-
-    <div class="filtros">
-      <input
-        type="text"
-        id="filtroProduto"
-        placeholder="Buscar por produto"
-        onkeyup="filtrarTabela()"
-      >
-
-      <select id="filtroGondola" onchange="filtrarTabela()">
-        <option value="">Todas as gôndolas</option>
-      </select>
-    </div>
-
-
-    <div class="tabela-box">
-
-      <table>
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-
-        <tbody id="tabelaEstoque"></tbody>
-
-      </table>
-
-    </div>
-
-  </section>
-
-
-  <section>
-    <h2>Últimas Movimentações</h2>
-
-
-    <div class="tabela-box">
-
-      <table>
-
-        <thead>
-          <tr>
-            <th>Tipo</th>
-            <th>Item</th>
-            <th>Gôndola</th>
-            <th>Quantidade</th>
-            <th>Data</th>
-            <th>Ação</th>
-          </tr>
-        </thead>
-
-
-        <tbody id="tabelaMovimentacoes"></tbody>
-
-
-      </table>
-
-    </div>
-
-  </section>
-
-  <details class="cadastros-box">
-
-    <summary>Transferência entre Gôndolas</summary>
-
-
-    <div class="movimentacao-grid">
-
-      <div class="campo-busca">
-
-        <input
-          type="text"
-          id="buscaTransferencia"
-          placeholder="Buscar material para transferir..."
-          onkeyup="buscarMaterialTransferencia()"
-        >
-
-        <div id="listaTransferencia"></div>
-
-        <input type="hidden" id="transfer_material_id">
-
+    <section id="historico" class="painel aba-painel">
+      <div class="secao-titulo">
+        <h2>Últimas Movimentações</h2>
       </div>
 
+      <div class="tabela-box">
+        <table>
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Item</th>
+              <th>Gôndola</th>
+              <th>Quantidade</th>
+              <th>Data</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaMovimentacoes"></tbody>
+        </table>
+      </div>
+    </section>
 
-      <select id="gondola_origem">
-        <option value="">Origem</option>
-      </select>
-
-
-      <select id="gondola_destino">
-        <option value="">Destino</option>
-      </select>
-
-
-      <input
-        type="number"
-        id="quantidade_transferencia"
-        placeholder="Quantidade"
-      >
-
-
-      <button onclick="transferirEstoque()">
-        Transferir
-      </button>
-
-
-    </div>
-
-  </details>
-
-  <details class="cadastros-box">
-    <summary>Cadastros</summary>
-
-    <div class="cadastros-grid">
-      <div>
-        <h2>Gôndola</h2>
-
-        <input type="text" id="nomeGondola" placeholder="Ex: Gôndola A">
-
-        <button onclick="cadastrarGondola()">Cadastrar</button>
+    <section id="transferencia" class="painel aba-painel">
+      <div class="secao-titulo">
+        <h2>Transferência entre Gôndolas</h2>
       </div>
 
-      <div>
-        <h2>Cadastrar Material</h2>
+      <div class="movimentacao-grid">
+        <div class="campo-busca campo-largo">
+          <label for="buscaTransferencia">Material</label>
+          <input
+            type="text"
+            id="buscaTransferencia"
+            placeholder="Buscar material para transferir"
+            autocomplete="off"
+            oninput="buscarMaterialTransferencia()"
+          >
 
-        <input type="text" id="material" placeholder="Material">
-        <input type="text" id="cor" placeholder="Cor">
-        <input type="text" id="camisa" placeholder="Camisa">
-        <input type="text" id="renda" placeholder="Renda">
-        <input type="text" id="cor_renda" placeholder="Cor da renda">
+          <div id="listaTransferencia" class="lista-busca"></div>
+          <input type="hidden" id="transfer_material_id">
+        </div>
 
-        <button onclick="cadastrarMaterial()">Cadastrar</button>
+        <div>
+          <label for="gondola_origem">Origem</label>
+          <select id="gondola_origem">
+            <option value="">Origem</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="gondola_destino">Destino</label>
+          <select id="gondola_destino">
+            <option value="">Destino</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="quantidade_transferencia">Quantidade</label>
+          <input type="number" id="quantidade_transferencia" placeholder="Qtd" min="1">
+        </div>
+
+        <button class="btn-principal" type="button" onclick="transferirEstoque()">Transferir</button>
+      </div>
+
+      <div class="atalhos-quantidade" aria-label="Atalhos de quantidade para transferência">
+        <button type="button" onclick="definirQuantidadeTransferencia(100)">100</button>
+        <button type="button" onclick="definirQuantidadeTransferencia(200)">200</button>
+        <button type="button" onclick="definirQuantidadeTransferencia(300)">300</button>
+        <button type="button" onclick="somarQuantidadeTransferencia(100)">+100</button>
+        <button type="button" onclick="somarQuantidadeTransferencia(200)">+200</button>
+        <button type="button" onclick="limparTransferencia()">Limpar</button>
+      </div>
+    </section>
+
+    <section id="cadastros" class="painel aba-painel">
+      <div class="secao-titulo">
+        <h2>Cadastros</h2>
+      </div>
+
+      <div class="cadastros-grid">
+        <div class="cadastro-box">
+          <h3>Gôndola</h3>
+          <input type="text" id="nomeGondola" placeholder="Ex: Gôndola A">
+          <button type="button" onclick="cadastrarGondola()">Cadastrar gôndola</button>
+        </div>
+
+        <div class="cadastro-box">
+          <h3>Material</h3>
+          <div class="form-material">
+            <input type="text" id="material" placeholder="Material">
+            <input type="text" id="cor" placeholder="Cor">
+            <input type="text" id="camisa" placeholder="Camisa">
+            <div class="campo-com-sufixo">
+              <input type="text" id="renda" placeholder="Renda">
+              <span>CM</span>
+            </div>
+            <input type="text" id="cor_renda" placeholder="Cor da renda">
+          </div>
+          <button type="button" onclick="cadastrarMaterial()">Cadastrar material</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="modalAjuste" class="modal-backdrop" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="tituloAjuste">
+      <div class="modal-topo">
+        <div>
+          <span class="modal-etiqueta">Arrumar estoque</span>
+          <h2 id="tituloAjuste">Ajustar item</h2>
+        </div>
+        <button class="btn-fechar" type="button" onclick="fecharAjusteEstoque()">Fechar</button>
+      </div>
+
+      <p id="ajusteDescricao" class="modal-descricao"></p>
+
+      <div class="ajuste-grid">
+        <div>
+          <label for="ajuste_gondola_id">Gôndola</label>
+          <select id="ajuste_gondola_id" onchange="atualizarQuantidadeAtualAjuste()"></select>
+        </div>
+
+        <div>
+          <label for="ajuste_quantidade_atual">Atual</label>
+          <input type="number" id="ajuste_quantidade_atual" disabled>
+        </div>
+
+        <div>
+          <label for="ajuste_quantidade_correta">Quantidade correta</label>
+          <input type="number" id="ajuste_quantidade_correta" min="0" placeholder="Qtd correta">
+        </div>
+      </div>
+
+      <div class="modal-acoes">
+        <button class="btn-neutro" type="button" onclick="fecharAjusteEstoque()">Cancelar</button>
+        <button class="btn-principal" type="button" onclick="salvarAjusteEstoque()">Salvar ajuste</button>
       </div>
     </div>
-  </details>
+  </div>
 
   <script src="estoque.js"></script>
-
 </body>
 </html>

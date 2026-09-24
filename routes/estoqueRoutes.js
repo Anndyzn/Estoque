@@ -217,7 +217,7 @@ router.delete("/movimentacoes/:id", (req, res) => {
       }
 
       const ajuste =
-        mov.tipo === "ENTRADA"
+        mov.tipo.includes("ENTRADA")
           ? -mov.quantidade
           : mov.quantidade;
 
@@ -373,6 +373,108 @@ router.post("/transferir", (req, res) => {
             );
           }
         );
+      });
+    }
+  );
+});
+
+router.post("/ajustar-estoque", (req, res) => {
+  const material_id = Number(req.body.material_id);
+  const gondola_id = Number(req.body.gondola_id);
+  const quantidade_correta = Number(req.body.quantidade_correta);
+
+  if (!material_id || !gondola_id || Number.isNaN(quantidade_correta)) {
+    return res.status(400).json({ erro: "Dados incompletos." });
+  }
+
+  if (quantidade_correta < 0) {
+    return res.status(400).json({ erro: "Quantidade correta inválida." });
+  }
+
+  db.get(
+    `
+    SELECT *
+    FROM estoque
+    WHERE material_id = ?
+    AND gondola_id = ?
+    `,
+    [material_id, gondola_id],
+    (err, estoque) => {
+      if (err) {
+        return res.status(500).json({ erro: err.message });
+      }
+
+      const quantidadeAtual = estoque ? Number(estoque.quantidade || 0) : 0;
+      const diferenca = quantidade_correta - quantidadeAtual;
+
+      if (diferenca === 0) {
+        return res.json({ mensagem: "Estoque já estava correto." });
+      }
+
+      const tipo = diferenca > 0 ? "AJUSTE ENTRADA" : "AJUSTE SAIDA";
+      const quantidadeAjuste = Math.abs(diferenca);
+
+      db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+
+        const finalizarAjuste = () => {
+          db.run(
+            `
+            INSERT INTO movimentacoes
+            (material_id, gondola_id, tipo, quantidade)
+            VALUES (?, ?, ?, ?)
+            `,
+            [material_id, gondola_id, tipo, quantidadeAjuste],
+            (err) => {
+              if (err) {
+                db.run("ROLLBACK");
+                return res.status(500).json({ erro: err.message });
+              }
+
+              db.run("COMMIT");
+
+              res.json({
+                mensagem: `Estoque ajustado de ${quantidadeAtual} para ${quantidade_correta}.`
+              });
+            }
+          );
+        };
+
+        if (estoque) {
+          db.run(
+            `
+            UPDATE estoque
+            SET quantidade = ?
+            WHERE id = ?
+            `,
+            [quantidade_correta, estoque.id],
+            (err) => {
+              if (err) {
+                db.run("ROLLBACK");
+                return res.status(500).json({ erro: err.message });
+              }
+
+              finalizarAjuste();
+            }
+          );
+        } else {
+          db.run(
+            `
+            INSERT INTO estoque
+            (material_id, gondola_id, quantidade)
+            VALUES (?, ?, ?)
+            `,
+            [material_id, gondola_id, quantidade_correta],
+            (err) => {
+              if (err) {
+                db.run("ROLLBACK");
+                return res.status(500).json({ erro: err.message });
+              }
+
+              finalizarAjuste();
+            }
+          );
+        }
       });
     }
   );

@@ -3,21 +3,48 @@ const db = require("../banco");
 
 const router = express.Router();
 
-router.post("/gondolas", (req, res) => {
-  const { nome } = req.body;
+function normalizarTexto(valor) {
+  return String(valor || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toUpperCase();
+}
 
-  db.run(
-    "INSERT INTO gondolas (nome) VALUES (?)",
+router.post("/gondolas", (req, res) => {
+  const nome = normalizarTexto(req.body.nome);
+
+  if (!nome) {
+    return res.status(400).json({ erro: "Informe o nome da gôndola." });
+  }
+
+  db.get(
+    "SELECT id FROM gondolas WHERE UPPER(TRIM(nome)) = ?",
     [nome],
-    function (err) {
+    (err, existente) => {
       if (err) {
         return res.status(500).json({ erro: err.message });
       }
 
-      res.json({
-        id: this.lastID,
-        nome
-      });
+      if (existente) {
+        return res.status(409).json({
+          erro: "Esta gôndola já está cadastrada."
+        });
+      }
+
+      db.run(
+        "INSERT INTO gondolas (nome) VALUES (?)",
+        [nome],
+        function (err) {
+          if (err) {
+            return res.status(500).json({ erro: err.message });
+          }
+
+          res.json({
+            id: this.lastID,
+            nome
+          });
+        }
+      );
     }
   );
 });

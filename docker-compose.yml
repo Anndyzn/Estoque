@@ -1,0 +1,17 @@
+services:
+  estoque:
+    build: .
+    container_name: estoque-app
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./estoque.db:/app/estoque.db
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: estoque-tunnel
+    restart: unless-stopped
+    depends_on:
+      - estoque
+    command: tunnel --no-autoupdate --url http://estoque:4000
