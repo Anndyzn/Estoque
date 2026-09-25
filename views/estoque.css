@@ -77,6 +77,12 @@ h3 {
   font-weight: 800;
 }
 
+h4 {
+  color: #20252d;
+  font-size: 14px;
+  font-weight: 800;
+}
+
 label {
   display: block;
   margin-bottom: 7px;
@@ -517,6 +523,94 @@ details summary {
   gap: 10px;
 }
 
+.gerenciar-cadastros {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.gerenciar-topo h3 {
+  margin-bottom: 12px;
+}
+
+.gerenciar-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(320px, 1.2fr);
+  gap: 16px;
+}
+
+.gerenciar-box {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.gerenciar-cabecalho {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-soft);
+}
+
+.gerenciar-cabecalho input {
+  min-height: 40px;
+}
+
+.lista-gerenciar {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.linha-gerenciar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #efede9;
+}
+
+.linha-gerenciar:last-child {
+  border-bottom: 0;
+}
+
+.linha-gerenciar span {
+  min-width: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.linha-gerenciar button {
+  min-height: 34px;
+  padding: 0 11px;
+  border-color: var(--line);
+  background: var(--surface-soft);
+  color: #3f4652;
+  font-size: 12px;
+}
+
+.linha-gerenciar button:hover {
+  border-color: var(--line-strong);
+  background: #efede9;
+}
+
+.acoes-gerenciar {
+  display: flex;
+  gap: 8px;
+}
+
+.linha-gerenciar.vazia {
+  display: block;
+  color: var(--muted);
+  font-weight: 700;
+  text-align: center;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -538,6 +632,10 @@ details summary {
   background: var(--surface);
   box-shadow: 0 24px 70px rgba(31, 41, 51, 0.22);
   padding: 18px;
+}
+
+.modal-box-menor {
+  width: min(420px, 100%);
 }
 
 .modal-topo {
@@ -599,6 +697,7 @@ details summary {
   .movimentacao-grid,
   .filtros,
   .cadastros-grid,
+  .gerenciar-grid,
   .form-material {
     grid-template-columns: 1fr;
   }
@@ -668,6 +767,19 @@ details summary {
     width: 100%;
     padding: 8px 10px;
     font-size: 12px;
+  }
+
+  .linha-gerenciar {
+    grid-template-columns: 1fr;
+  }
+
+  .linha-gerenciar button {
+    width: 100%;
+  }
+
+  .acoes-gerenciar {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .ajuste-grid,

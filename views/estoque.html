@@ -80,6 +80,7 @@
       <div id="detalheMaterial" class="detalhe-material">
         Selecione um material para ver o saldo por gôndola.
       </div>
+
     </section>
 
     <section id="relatorio" class="painel aba-painel">
@@ -214,6 +215,40 @@
           <button type="button" onclick="cadastrarMaterial()">Cadastrar material</button>
         </div>
       </div>
+
+      <div class="gerenciar-cadastros">
+        <div class="gerenciar-topo">
+          <h3>Gerenciar cadastros</h3>
+        </div>
+
+        <div class="gerenciar-grid">
+          <div class="gerenciar-box">
+            <div class="gerenciar-cabecalho">
+              <h4>G&ocirc;ndolas cadastradas</h4>
+              <input
+                type="text"
+                id="filtroGerenciarGondolas"
+                placeholder="Buscar g&ocirc;ndola"
+                oninput="renderizarGerenciarGondolas()"
+              >
+            </div>
+            <div id="listaGerenciarGondolas" class="lista-gerenciar"></div>
+          </div>
+
+          <div class="gerenciar-box">
+            <div class="gerenciar-cabecalho">
+              <h4>Materiais cadastrados</h4>
+              <input
+                type="text"
+                id="filtroGerenciarMateriais"
+                placeholder="Buscar material"
+                oninput="renderizarGerenciarMateriais()"
+              >
+            </div>
+            <div id="listaGerenciarMateriais" class="lista-gerenciar"></div>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -253,6 +288,76 @@
     </div>
   </div>
 
+  <div id="modalEditarGondola" class="modal-backdrop" hidden>
+    <div class="modal-box modal-box-menor" role="dialog" aria-modal="true" aria-labelledby="tituloEditarGondola">
+      <div class="modal-topo">
+        <div>
+          <span class="modal-etiqueta">Editar cadastro</span>
+          <h2 id="tituloEditarGondola">G&ocirc;ndola</h2>
+        </div>
+        <button class="btn-fechar" type="button" onclick="fecharEditarGondola()">Fechar</button>
+      </div>
+
+      <input type="hidden" id="editar_gondola_id">
+
+      <div>
+        <label for="editar_nome_gondola">Nome</label>
+        <input type="text" id="editar_nome_gondola" placeholder="Nome da g&ocirc;ndola">
+      </div>
+
+      <div class="modal-acoes">
+        <button class="btn-neutro" type="button" onclick="fecharEditarGondola()">Cancelar</button>
+        <button class="btn-principal" type="button" onclick="salvarEditarGondola()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalEditarMaterial" class="modal-backdrop" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="tituloEditarMaterial">
+      <div class="modal-topo">
+        <div>
+          <span class="modal-etiqueta">Editar cadastro</span>
+          <h2 id="tituloEditarMaterial">Material</h2>
+        </div>
+        <button class="btn-fechar" type="button" onclick="fecharEditarMaterial()">Fechar</button>
+      </div>
+
+      <input type="hidden" id="editar_material_id">
+
+      <div class="form-material">
+        <div>
+          <label for="editar_material">Material</label>
+          <input type="text" id="editar_material" placeholder="Material">
+        </div>
+        <div>
+          <label for="editar_cor">Cor</label>
+          <input type="text" id="editar_cor" placeholder="Cor">
+        </div>
+        <div>
+          <label for="editar_camisa">Camisa</label>
+          <input type="text" id="editar_camisa" placeholder="Camisa">
+        </div>
+        <div>
+          <label for="editar_renda">Renda</label>
+          <div class="campo-com-sufixo">
+            <input type="text" id="editar_renda" placeholder="Renda">
+            <span>CM</span>
+          </div>
+        </div>
+        <div>
+          <label for="editar_cor_renda">Cor da renda</label>
+          <input type="text" id="editar_cor_renda" placeholder="Cor da renda">
+        </div>
+      </div>
+
+      <div class="modal-acoes">
+        <button class="btn-neutro" type="button" onclick="fecharEditarMaterial()">Cancelar</button>
+        <button class="btn-principal" type="button" onclick="salvarEditarMaterial()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
   <script src="estoque.js"></script>
 </body>
 </html>

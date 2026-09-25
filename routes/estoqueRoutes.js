@@ -3,6 +3,14 @@ const db = require("../banco");
 
 const router = express.Router();
 
+function notificarAtualizacao(req, origem) {
+  const io = req.app.get("io");
+
+  if (io) {
+    io.emit("estoque:atualizado", { origem, data: new Date().toISOString() });
+  }
+}
+
 router.post("/movimentar", (req, res) => {
   const { material_id, gondola_id, tipo, quantidade } = req.body;
 
@@ -90,6 +98,8 @@ router.post("/movimentar", (req, res) => {
               return res.status(500).json({ erro: err.message });
             }
 
+            notificarAtualizacao(req, "movimentacao");
+
             res.json({
               mensagem: "Movimentação realizada com sucesso."
             });
@@ -110,11 +120,20 @@ router.get("/estoque", (req, res) => {
       m.camisa,
       m.renda,
       m.cor_renda,
-      GROUP_CONCAT(g.nome || ': ' || e.quantidade, ' / ') AS gondolas,
+      (
+        SELECT GROUP_CONCAT(gondola_saldo, ' / ')
+        FROM (
+          SELECT g2.nome || ': ' || e2.quantidade AS gondola_saldo
+          FROM estoque e2
+          JOIN gondolas g2 ON e2.gondola_id = g2.id
+          WHERE e2.material_id = m.id
+          AND e2.quantidade > 0
+          ORDER BY g2.nome
+        )
+      ) AS gondolas,
       SUM(e.quantidade) AS quantidade
     FROM estoque e
     JOIN materiais m ON e.material_id = m.id
-    JOIN gondolas g ON e.gondola_id = g.id
     WHERE e.quantidade > 0
     GROUP BY
       m.id,
@@ -123,7 +142,7 @@ router.get("/estoque", (req, res) => {
       m.camisa,
       m.renda,
       m.cor_renda
-    ORDER BY m.material
+    ORDER BY m.material, m.cor, m.camisa, m.renda, m.cor_renda
     `,
     [],
     (err, rows) => {
@@ -271,6 +290,8 @@ router.delete("/movimentacoes/:id", (req, res) => {
                     return res.status(500).json({ erro: err.message });
                   }
 
+                  notificarAtualizacao(req, "desfazer-movimentacao");
+
                   res.json({
                     mensagem: "Movimentação desfeita com sucesso."
                   });
@@ -364,10 +385,16 @@ router.post("/transferir", (req, res) => {
                   return res.status(500).json({ erro: err.message });
                 }
 
-                db.run("COMMIT");
+                db.run("COMMIT", (err) => {
+                  if (err) {
+                    return res.status(500).json({ erro: err.message });
+                  }
 
-                res.json({
+                  notificarAtualizacao(req, "transferencia");
+
+                  res.json({
                   mensagem: "Transferência realizada com sucesso."
+                  });
                 });
               }
             );
@@ -431,10 +458,16 @@ router.post("/ajustar-estoque", (req, res) => {
                 return res.status(500).json({ erro: err.message });
               }
 
-              db.run("COMMIT");
+              db.run("COMMIT", (err) => {
+                if (err) {
+                  return res.status(500).json({ erro: err.message });
+                }
 
-              res.json({
+                notificarAtualizacao(req, "ajuste-estoque");
+
+                res.json({
                 mensagem: `Estoque ajustado de ${quantidadeAtual} para ${quantidade_correta}.`
+                });
               });
             }
           );

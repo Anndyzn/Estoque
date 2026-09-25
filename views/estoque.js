@@ -1,9 +1,11 @@
 let materiaisCache = [];
+let gondolasCache = [];
 let estoqueCache = [];
 let materialSelecionadoId = null;
 let ultimaMovimentacao = null;
 let ajusteMaterialId = null;
 let ajusteGondolas = [];
+let atualizacaoTempoRealTimer = null;
 
 const API = "";
 
@@ -80,6 +82,27 @@ function textoBuscaMaterial(item) {
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+}
+
+function compararTexto(a, b) {
+  return String(a || "").localeCompare(String(b || ""), "pt-BR", {
+    sensitivity: "base",
+    numeric: true
+  });
+}
+
+function compararMateriais(a, b) {
+  return (
+    compararTexto(a.material, b.material) ||
+    compararTexto(a.cor, b.cor) ||
+    compararTexto(a.camisa, b.camisa) ||
+    compararTexto(a.renda, b.renda) ||
+    compararTexto(a.cor_renda, b.cor_renda)
+  );
+}
+
+function compararGondolas(a, b) {
+  return compararTexto(a.nome || a.gondola, b.nome || b.gondola);
 }
 
 function escaparParametro(texto) {
@@ -165,6 +188,75 @@ function atualizarBotaoRepetirMovimentacao() {
   botao.disabled = !ultimaMovimentacao;
 }
 
+function restaurarValorSelect(id, valor) {
+  const campo = document.getElementById(id);
+
+  if (!campo || !valor) {
+    return;
+  }
+
+  const existe = Array.from(campo.options).some((opcao) => opcao.value === String(valor));
+
+  if (existe) {
+    campo.value = valor;
+  }
+}
+
+async function recarregarDadosTempoReal() {
+  const estado = {
+    gondola_id: document.getElementById("gondola_id")?.value,
+    gondola_origem: document.getElementById("gondola_origem")?.value,
+    gondola_destino: document.getElementById("gondola_destino")?.value,
+    ajuste_gondola_id: document.getElementById("ajuste_gondola_id")?.value,
+    transfer_material_id: document.getElementById("transfer_material_id")?.value
+  };
+
+  await carregarMateriais();
+  await carregarGondolas();
+  await carregarEstoque();
+  await carregarMovimentacoes();
+  filtrarTabela();
+
+  if (materialSelecionadoId) {
+    await atualizarGondolasMovimentacao();
+    restaurarValorSelect("gondola_id", estado.gondola_id);
+    await mostrarDetalheMaterial(materialSelecionadoId);
+  } else {
+    restaurarValorSelect("gondola_id", estado.gondola_id);
+  }
+
+  if (estado.transfer_material_id) {
+    await carregarGondolasOrigemTransferencia(estado.transfer_material_id);
+    await carregarGondolasDestinoTransferencia();
+    restaurarValorSelect("gondola_origem", estado.gondola_origem);
+    restaurarValorSelect("gondola_destino", estado.gondola_destino);
+  }
+
+  if (ajusteMaterialId && !document.getElementById("modalAjuste").hidden) {
+    ajusteGondolas = await carregarGondolasParaAjuste(ajusteMaterialId);
+    renderizarGondolasAjuste();
+    restaurarValorSelect("ajuste_gondola_id", estado.ajuste_gondola_id);
+  }
+}
+
+function configurarTempoReal() {
+  if (typeof io === "undefined") {
+    return;
+  }
+
+  const socket = io();
+
+  socket.on("estoque:atualizado", () => {
+    clearTimeout(atualizacaoTempoRealTimer);
+
+    atualizacaoTempoRealTimer = setTimeout(() => {
+      recarregarDadosTempoReal().catch(() => {
+        mostrarMensagem("Nao foi possivel atualizar em tempo real.", "erro");
+      });
+    }, 250);
+  });
+}
+
 async function cadastrarGondola() {
   const nome = normalizarTexto(document.getElementById("nomeGondola").value);
 
@@ -241,13 +333,15 @@ async function cadastrarMaterial() {
 
 async function carregarMateriais() {
   const resposta = await fetch(`${API}/materiais`);
-  materiaisCache = await resposta.json();
+  materiaisCache = (await resposta.json()).sort(compararMateriais);
+  renderizarGerenciarMateriais();
   atualizarResumo();
 }
 
 async function carregarGondolas() {
   const resposta = await fetch(`${API}/gondolas`);
-  const gondolas = await resposta.json();
+  const gondolas = (await resposta.json()).sort(compararGondolas);
+  gondolasCache = gondolas;
 
   const select = document.getElementById("gondola_id");
   const filtroGondola = document.getElementById("filtroGondola");
@@ -269,6 +363,178 @@ async function carregarGondolas() {
       filtroGondola.innerHTML += `<option value="${item.nome}">${item.nome}</option>`;
     }
   });
+
+  renderizarGerenciarGondolas();
+}
+
+function renderizarGerenciarGondolas() {
+  const lista = document.getElementById("listaGerenciarGondolas");
+
+  if (!lista) {
+    return;
+  }
+
+  const busca = document.getElementById("filtroGerenciarGondolas").value.trim().toLowerCase();
+  const filtradas = gondolasCache.filter((item) => item.nome.toLowerCase().includes(busca));
+
+  if (filtradas.length === 0) {
+    lista.innerHTML = `<div class="linha-gerenciar vazia">Nenhuma gondola encontrada.</div>`;
+    return;
+  }
+
+  lista.innerHTML = filtradas.map((item) => `
+    <div class="linha-gerenciar">
+      <span>${escaparAtributo(item.nome)}</span>
+      <button type="button" onclick="abrirEditarGondola(${item.id})">Editar</button>
+    </div>
+  `).join("");
+}
+
+function renderizarGerenciarMateriais() {
+  const lista = document.getElementById("listaGerenciarMateriais");
+
+  if (!lista) {
+    return;
+  }
+
+  const busca = document.getElementById("filtroGerenciarMateriais").value.trim().toLowerCase();
+  const filtrados = materiaisCache.filter((item) => textoBuscaMaterial(item).includes(busca));
+
+  if (filtrados.length === 0) {
+    lista.innerHTML = `<div class="linha-gerenciar vazia">Nenhum material encontrado.</div>`;
+    return;
+  }
+
+  lista.innerHTML = filtrados.map((item) => `
+    <div class="linha-gerenciar">
+      <span>${escaparAtributo(montarDescricao(item))}</span>
+      <div class="acoes-gerenciar">
+        <button type="button" onclick="abrirEditarMaterial(${item.id})">Editar</button>
+        <button type="button" onclick="abrirAjusteEstoque(${item.id}, '${escaparParametro(montarDescricao(item))}')">Arrumar</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function abrirEditarGondola(id) {
+  const gondola = gondolasCache.find((item) => Number(item.id) === Number(id));
+
+  if (!gondola) {
+    mostrarMensagem("Gondola nao encontrada.", "erro");
+    return;
+  }
+
+  document.getElementById("editar_gondola_id").value = gondola.id;
+  document.getElementById("editar_nome_gondola").value = gondola.nome || "";
+  document.getElementById("modalEditarGondola").hidden = false;
+  document.getElementById("editar_nome_gondola").focus();
+}
+
+function fecharEditarGondola() {
+  document.getElementById("modalEditarGondola").hidden = true;
+  document.getElementById("editar_gondola_id").value = "";
+}
+
+async function salvarEditarGondola() {
+  const id = document.getElementById("editar_gondola_id").value;
+  const nome = normalizarTexto(document.getElementById("editar_nome_gondola").value);
+
+  if (!id || !nome) {
+    mostrarMensagem("Informe o nome da gondola.", "erro");
+    return;
+  }
+
+  const resposta = await fetch(`${API}/gondolas/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ nome })
+  });
+
+  const dados = await resposta.json();
+
+  if (!resposta.ok) {
+    mostrarMensagem(dados.erro || "Erro ao editar gondola.", "erro");
+    return;
+  }
+
+  fecharEditarGondola();
+  await carregarGondolas();
+  await carregarEstoque();
+  await carregarMovimentacoes();
+  mostrarMensagem("Gondola atualizada com sucesso.");
+}
+
+function abrirEditarMaterial(id) {
+  const item = materiaisCache.find((material) => Number(material.id) === Number(id));
+
+  if (!item) {
+    mostrarMensagem("Material nao encontrado.", "erro");
+    return;
+  }
+
+  document.getElementById("editar_material_id").value = item.id;
+  document.getElementById("editar_material").value = item.material || "";
+  document.getElementById("editar_cor").value = item.cor || "";
+  document.getElementById("editar_camisa").value = item.camisa || "";
+  document.getElementById("editar_renda").value = item.renda || "";
+  document.getElementById("editar_cor_renda").value = item.cor_renda || "";
+  document.getElementById("modalEditarMaterial").hidden = false;
+  document.getElementById("editar_material").focus();
+}
+
+function fecharEditarMaterial() {
+  document.getElementById("modalEditarMaterial").hidden = true;
+  document.getElementById("editar_material_id").value = "";
+}
+
+async function salvarEditarMaterial() {
+  const id = document.getElementById("editar_material_id").value;
+  const material = normalizarTexto(document.getElementById("editar_material").value);
+  const cor = normalizarTexto(document.getElementById("editar_cor").value);
+  const camisa = normalizarTexto(document.getElementById("editar_camisa").value);
+  const renda = normalizarTexto(formatarRendaCm(document.getElementById("editar_renda").value));
+  const cor_renda = normalizarTexto(document.getElementById("editar_cor_renda").value);
+
+  if (!id || !material) {
+    mostrarMensagem("Informe o nome do material.", "erro");
+    return;
+  }
+
+  const duplicado = materialDuplicado({ material, cor, camisa, renda, cor_renda });
+
+  if (duplicado && Number(duplicado.id) !== Number(id)) {
+    mostrarMensagem("Este material ja esta cadastrado com os mesmos detalhes.", "erro");
+    return;
+  }
+
+  const resposta = await fetch(`${API}/materiais/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      material,
+      cor,
+      camisa,
+      renda,
+      cor_renda
+    })
+  });
+
+  const dados = await resposta.json();
+
+  if (!resposta.ok) {
+    mostrarMensagem(dados.erro || "Erro ao editar material.", "erro");
+    return;
+  }
+
+  fecharEditarMaterial();
+  await carregarMateriais();
+  await carregarEstoque();
+  await carregarMovimentacoes();
+  mostrarMensagem("Material atualizado com sucesso.");
 }
 
 async function movimentarEstoque() {
@@ -345,7 +611,7 @@ async function repetirUltimaMovimentacao() {
 
 async function carregarEstoque() {
   const resposta = await fetch(`${API}/estoque`);
-  estoqueCache = await resposta.json();
+  estoqueCache = (await resposta.json()).sort(compararMateriais);
 
   const tabela = document.getElementById("tabelaEstoque");
   tabela.innerHTML = "";
@@ -417,22 +683,12 @@ async function abrirAjusteEstoque(materialId, descricao) {
   document.getElementById("ajuste_quantidade_atual").value = "";
   document.getElementById("ajuste_quantidade_correta").value = "";
 
-  const resposta = await fetch(`${API}/estoque/material/${materialId}/gondolas`);
-  ajusteGondolas = await resposta.json();
+  ajusteGondolas = await carregarGondolasParaAjuste(materialId);
 
-  const select = document.getElementById("ajuste_gondola_id");
-  select.innerHTML = `<option value="">Selecione</option>`;
-
-  ajusteGondolas.forEach((item) => {
-    select.innerHTML += `
-      <option value="${item.gondola_id}">
-        ${item.gondola} | Atual: ${item.quantidade}
-      </option>
-    `;
-  });
+  renderizarGondolasAjuste();
 
   document.getElementById("modalAjuste").hidden = false;
-  select.focus();
+  document.getElementById("ajuste_gondola_id").focus();
 }
 
 function fecharAjusteEstoque() {
@@ -449,6 +705,37 @@ function atualizarQuantidadeAtualAjuste() {
   document.getElementById("ajuste_quantidade_atual").value = quantidadeAtual;
   document.getElementById("ajuste_quantidade_correta").value = quantidadeAtual;
   document.getElementById("ajuste_quantidade_correta").focus();
+}
+
+async function carregarGondolasParaAjuste(materialId) {
+  const respostaTodas = await fetch(`${API}/gondolas`);
+  const todasGondolas = (await respostaTodas.json()).sort(compararGondolas);
+
+  const respostaEstoque = await fetch(`${API}/estoque/material/${materialId}/gondolas`);
+  const gondolasComEstoque = (await respostaEstoque.json()).sort(compararGondolas);
+
+  return todasGondolas.map((gondola) => {
+    const saldo = gondolasComEstoque.find((item) => Number(item.gondola_id) === Number(gondola.id));
+
+    return {
+      gondola_id: gondola.id,
+      gondola: gondola.nome,
+      quantidade: saldo ? Number(saldo.quantidade || 0) : 0
+    };
+  });
+}
+
+function renderizarGondolasAjuste() {
+  const select = document.getElementById("ajuste_gondola_id");
+  select.innerHTML = `<option value="">Selecione</option>`;
+
+  ajusteGondolas.forEach((item) => {
+    select.innerHTML += `
+      <option value="${item.gondola_id}">
+        ${item.gondola} | Atual: ${item.quantidade}
+      </option>
+    `;
+  });
 }
 
 async function salvarAjusteEstoque() {
@@ -610,7 +897,7 @@ async function selecionarMaterial(id, descricao) {
 
 async function mostrarDetalheMaterial(materialId) {
   const resposta = await fetch(`${API}/estoque/material/${materialId}/gondolas`);
-  const gondolas = await resposta.json();
+  const gondolas = (await resposta.json()).sort(compararGondolas);
   const detalhe = document.getElementById("detalheMaterial");
 
   if (gondolas.length === 0) {
@@ -648,10 +935,10 @@ async function atualizarGondolasMovimentacao() {
 
 async function carregarGondolasEntrada(materialId) {
   const respostaTodas = await fetch(`${API}/gondolas`);
-  const todasGondolas = await respostaTodas.json();
+  const todasGondolas = (await respostaTodas.json()).sort(compararGondolas);
 
   const respostaEstoque = await fetch(`${API}/estoque/material/${materialId}/gondolas`);
-  const gondolasComEstoque = await respostaEstoque.json();
+  const gondolasComEstoque = (await respostaEstoque.json()).sort(compararGondolas);
 
   const select = document.getElementById("gondola_id");
   select.innerHTML = `<option value="">Selecione a gôndola</option>`;
@@ -666,7 +953,7 @@ async function carregarGondolasEntrada(materialId) {
 
 async function carregarGondolasDoMaterial(materialId) {
   const resposta = await fetch(`${API}/estoque/material/${materialId}/gondolas`);
-  const gondolas = await resposta.json();
+  const gondolas = (await resposta.json()).sort(compararGondolas);
 
   const select = document.getElementById("gondola_id");
   select.innerHTML = "";
@@ -713,7 +1000,7 @@ async function selecionarMaterialTransferencia(id, descricao) {
 
 async function carregarGondolasOrigemTransferencia(materialId) {
   const resposta = await fetch(`${API}/estoque/material/${materialId}/gondolas`);
-  const gondolas = await resposta.json();
+  const gondolas = (await resposta.json()).sort(compararGondolas);
 
   const select = document.getElementById("gondola_origem");
   select.innerHTML = `<option value="">Origem</option>`;
@@ -729,7 +1016,7 @@ async function carregarGondolasOrigemTransferencia(materialId) {
 
 async function carregarGondolasDestinoTransferencia() {
   const resposta = await fetch(`${API}/gondolas`);
-  const gondolas = await resposta.json();
+  const gondolas = (await resposta.json()).sort(compararGondolas);
 
   const select = document.getElementById("gondola_destino");
   select.innerHTML = `<option value="">Destino</option>`;
@@ -854,7 +1141,21 @@ function configurarAtalhosTeclado() {
     }
   });
 
-  ["material", "cor", "camisa", "renda", "cor_renda", "nomeGondola"].forEach((id) => {
+  document.getElementById("editar_nome_gondola").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      salvarEditarGondola();
+    }
+  });
+
+  document.getElementById("editar_material").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      salvarEditarMaterial();
+    }
+  });
+
+  ["material", "cor", "camisa", "renda", "cor_renda", "nomeGondola", "editar_nome_gondola", "editar_material", "editar_cor", "editar_camisa", "editar_renda", "editar_cor_renda"].forEach((id) => {
     document.getElementById(id).addEventListener("input", (event) => {
       const inicio = event.target.selectionStart;
       const fim = event.target.selectionEnd;
@@ -876,6 +1177,7 @@ function carregarUltimaMovimentacao() {
 
 async function iniciar() {
   configurarAtalhosTeclado();
+  configurarTempoReal();
   carregarUltimaMovimentacao();
   await carregarMateriais();
   await carregarGondolas();

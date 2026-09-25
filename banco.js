@@ -11,6 +11,11 @@ db.serialize(() => {
   `);
 
   db.run(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_gondolas_nome_normalizado
+    ON gondolas (UPPER(TRIM(nome)))
+  `);
+
+  db.run(`
     CREATE TABLE IF NOT EXISTS materiais (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       material TEXT NOT NULL,
